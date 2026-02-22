@@ -1,5 +1,5 @@
 /**
- * Cloudflare Pages Function: fit y = b/x² + a, compute R², apply transform.
+ * Cloudflare Pages Function: fit y = b/x² + a, compute R², apply -log(1-R²).
  * Returns only the transformed value; no R² or formula exposed.
  */
 
@@ -28,23 +28,9 @@ function fit(x, y) {
   return r2;
 }
 
-const TRANSFORMS = {
-  '1/(1-R²) ★': (r2) => r2 >= 0.999 ? 1e10 : 1 / (1 - Math.max(0, Math.min(0.999, r2))),
-  'exp(1/(1-R²)) ★': (r2) => r2 >= 0.999 ? 1e100 : Math.exp(1 / (1 - Math.max(0, Math.min(0.999, r2)))),
-  '-log(1-R²) ★': (r2) => -Math.log(Math.max(1e-10, 1 - Math.max(0, Math.min(0.9999, r2)))),
-  '1/√(1-R²) ★': (r2) => r2 >= 0.999 ? 1e10 : 1 / Math.sqrt(Math.max(1e-10, 1 - Math.max(0, Math.min(0.999, r2)))),
-  'tan(π·R²/2) ★': (r2) => Math.tan(Math.PI * Math.max(0, Math.min(0.999, r2)) / 2),
-  'exp(10·(R²-1)) ★': (r2) => Math.exp(10 * (Math.max(0, r2) - 1)),
-  '(1-R²)⁻³ ★': (r2) => r2 >= 0.999 ? 1e30 : 1 / Math.pow(Math.max(1e-10, 1 - Math.max(0, Math.min(0.999, r2))), 3),
-  'log(1 + R²)': (r2) => Math.log(1 + Math.max(0, r2)),
-  'exp(R²)': (r2) => Math.exp(Math.max(-10, r2)),
-  '√(1 + R²)': (r2) => Math.sqrt(1 + Math.max(0, r2)),
-  'R²²': (r2) => Math.pow(Math.max(0, r2), 2),
-  'arctan(R²)×2/π': (r2) => Math.atan(Math.max(0, r2)) * 2 / Math.PI,
-  'R²/(1+R²)': (r2) => (Math.max(0, r2) / (1 + Math.max(0, r2))) || 0,
-  'sinh(R²)': (r2) => Math.sinh(Math.max(0, r2)),
-  'exp(-R²)': (r2) => Math.exp(-Math.max(0, r2)),
-};
+function transform(r2) {
+  return -Math.log(Math.max(1e-10, 1 - Math.max(0, Math.min(0.9999, r2))));
+}
 
 export async function onRequestPost(context) {
   const { request } = context;
@@ -64,15 +50,15 @@ export async function onRequestPost(context) {
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+    return new Response(JSON.stringify({ error: 'Nederīga JSON struktūra' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
   }
 
-  const { rows, transformKey } = body || {};
-  if (!Array.isArray(rows) || !transformKey) {
-    return new Response(JSON.stringify({ error: 'Missing rows or transformKey' }), {
+  const { rows } = body || {};
+  if (!Array.isArray(rows)) {
+    return new Response(JSON.stringify({ error: 'Trūkst datu rindu' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
@@ -89,15 +75,7 @@ export async function onRequestPost(context) {
   }
 
   if (x.length < 2) {
-    return new Response(JSON.stringify({ error: 'Need at least 2 valid points' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    });
-  }
-
-  const forward = TRANSFORMS[transformKey];
-  if (typeof forward !== 'function') {
-    return new Response(JSON.stringify({ error: 'Unknown transform' }), {
+    return new Response(JSON.stringify({ error: 'Vajag vismaz 2 derīgus punktus' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
@@ -105,7 +83,7 @@ export async function onRequestPost(context) {
 
   const r2 = fit(x, y);
   if (r2 === null) {
-    return new Response(JSON.stringify({ error: 'Fit failed' }), {
+    return new Response(JSON.stringify({ error: 'Pielāgošana neizdevās' }), {
       status: 422,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
@@ -113,9 +91,9 @@ export async function onRequestPost(context) {
 
   let mainResult;
   try {
-    mainResult = forward(r2);
+    mainResult = transform(r2);
   } catch {
-    return new Response(JSON.stringify({ error: 'Transform failed' }), {
+    return new Response(JSON.stringify({ error: 'Transformācija neizdevās' }), {
       status: 422,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });

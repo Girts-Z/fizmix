@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fizmix Measurement App</title>
+  <title>Fizmix mērījumu lietotne</title>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -14,7 +14,6 @@
     .col-right { flex: 1 1 70%; min-width: 0; }
     .panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .panel h2 { margin: 0 0 12px; font-size: 1.1rem; }
-    .panel h3 { margin: 12px 0 8px; font-size: 1rem; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
     th { background: #f0f0f0; }
@@ -23,12 +22,10 @@
     button:hover { background: #357abd; }
     button.del { background: #c44; }
     button.del:hover { background: #a33; }
-    .main-result { font-size: 1.5rem; font-weight: 600; color: #1a1a1a; margin: 8px 0; }
+    .main-result-box { font-size: 1.5rem; font-weight: 600; color: #1a4d1a; margin: 12px 0; padding: 16px; background: #e8f5e9; border: 2px solid #2e7d32; border-radius: 8px; }
     .viz-row { display: flex; gap: 16px; align-items: flex-start; }
     .viz-row .results { flex: 0 0 200px; }
     .viz-row .chart { flex: 1; min-width: 0; }
-    label { display: block; margin: 8px 0 4px; }
-    select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
     .muted { color: #666; font-size: 0.9rem; }
     .error { color: #c00; }
     .warn { color: #b8860b; }
@@ -38,7 +35,7 @@
   <div class="layout">
     <div class="col-left">
       <div class="panel">
-        <h2>Data Input</h2>
+        <h2>Datu ievade</h2>
         <table id="dataTable">
           <thead>
             <tr>
@@ -49,30 +46,17 @@
           </thead>
           <tbody id="dataBody"></tbody>
         </table>
-        <button type="button" id="addRow">+ Add row</button>
-      </div>
-      <div class="panel">
-        <h3>Testing Options</h3>
-        <label>Noise level (%) <input type="range" id="noiseLevel" min="0" max="50" step="0.5" value="5"> <span id="noiseVal">5</span>%</label>
-        <p style="margin-top: 8px;">
-          <button type="button" id="setOriginalBtn">Set as original</button>
-          <button type="button" id="addNoiseBtn">Add noise</button>
-        </p>
-      </div>
-      <div class="panel">
-        <h3>Result Transformation</h3>
-        <p class="muted">Functions sensitive near R² = 1 are marked with ★</p>
-        <select id="transformSelect"></select>
+        <button type="button" id="addRow">+ Pievienot rindu</button>
       </div>
     </div>
     <div class="col-right">
       <div class="panel viz-row">
         <div class="results">
-          <h2>Results</h2>
+          <h2>Rezultāti</h2>
           <div id="resultArea"></div>
         </div>
         <div class="chart">
-          <h2>Data Visualization</h2>
+          <h2>Datu vizualizācija</h2>
           <div id="plotDiv" style="height: 500px;"></div>
         </div>
       </div>
@@ -80,31 +64,14 @@
   </div>
 
   <script>
-    // Default data
     const defaultData = [
       [10, 1000], [20, 250], [30, 111], [40, 63], [50, 40]
     ];
 
-    // Transform options: labels only (fit and transform run on backend)
-    const TRANSFORM_KEYS = [
-      '1/(1-R²) ★', 'exp(1/(1-R²)) ★', '-log(1-R²) ★', '1/√(1-R²) ★',
-      'tan(π·R²/2) ★', 'exp(10·(R²-1)) ★', '(1-R²)⁻³ ★',
-      'log(1 + R²)', 'exp(R²)', '√(1 + R²)', 'R²²', 'arctan(R²)×2/π',
-      'R²/(1+R²)', 'sinh(R²)', 'exp(-R²)'
-    ];
-
     let dataRows = JSON.parse(localStorage.getItem('fizmix_data')) || defaultData.map(r => [...r]);
-    let originalDataRows = JSON.parse(localStorage.getItem('fizmix_original'));
-    if (!originalDataRows || originalDataRows.length !== dataRows.length) {
-      originalDataRows = dataRows.map(r => [...r]);
-    }
-    // Keep same row count (in case of add/delete since last save)
-    while (originalDataRows.length < dataRows.length) originalDataRows.push(['', '']);
-    originalDataRows = originalDataRows.slice(0, dataRows.length);
 
     function saveData() {
       localStorage.setItem('fizmix_data', JSON.stringify(dataRows));
-      localStorage.setItem('fizmix_original', JSON.stringify(originalDataRows));
     }
 
     function renderTable() {
@@ -115,7 +82,7 @@
         tr.innerHTML = `
           <td><input type="number" step="any" data-i="${i}" data-c="0" value="${row[0]}"></td>
           <td><input type="number" step="any" data-i="${i}" data-c="1" value="${row[1]}"></td>
-          <td><button type="button" class="del" data-i="${i}">Delete</button></td>`;
+          <td><button type="button" class="del" data-i="${i}">Dzēst</button></td>`;
         tbody.appendChild(tr);
       });
       tbody.querySelectorAll('input').forEach(inp => {
@@ -131,7 +98,6 @@
         btn.addEventListener('click', () => {
           const i = +btn.dataset.i;
           dataRows.splice(i, 1);
-          originalDataRows.splice(i, 1);
           saveData();
           renderTable();
           update();
@@ -141,36 +107,10 @@
 
     document.getElementById('addRow').addEventListener('click', () => {
       dataRows.push(['', '']);
-      originalDataRows.push(['', '']);
       saveData();
       renderTable();
       update();
     });
-
-    document.getElementById('noiseLevel').addEventListener('input', function() {
-      document.getElementById('noiseVal').textContent = this.value;
-      update();
-    });
-    document.getElementById('setOriginalBtn').addEventListener('click', function() {
-      originalDataRows = dataRows.map(r => [r[0], r[1]]);
-      saveData();
-      update();
-    });
-    document.getElementById('addNoiseBtn').addEventListener('click', function() {
-      const level = parseFloat(document.getElementById('noiseLevel').value) / 100;
-      for (let i = 0; i < dataRows.length; i++) {
-        const yOrig = i < originalDataRows.length ? parseFloat(originalDataRows[i][1]) : parseFloat(dataRows[i][1]);
-        if (!isNaN(yOrig)) {
-          const u = Math.random(), v = Math.random();
-          const g = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
-          dataRows[i][1] = yOrig + g * level * Math.abs(yOrig);
-        }
-      }
-      saveData();
-      renderTable();
-      update();
-    });
-    document.getElementById('transformSelect').addEventListener('change', update);
 
     function getXY() {
       const x = [], y = [];
@@ -188,45 +128,41 @@
 
     async function update() {
       const { x, y } = getXY();
-      const transformKey = document.getElementById('transformSelect').value;
       const resultArea = document.getElementById('resultArea');
 
       if (x.length < 2) {
-        resultArea.innerHTML = '<p class="warn">Please enter at least 2 valid data points.</p>';
+        resultArea.innerHTML = '<p class="warn">Lūdzu ievadiet vismaz 2 derīgus datu punktus.</p>';
         if (x.length > 0) {
           Plotly.newPlot('plotDiv', [{
             x: x, y: y, mode: 'markers', type: 'scatter',
-            marker: { size: 10, color: 'blue' }, name: 'Data points'
+            marker: { size: 10, color: 'blue' }, name: 'Datu punkti'
           }], {
-            title: 'Apgaismojums vs Attālums',
+            title: 'Apgaismojums no attāluma',
             xaxis: { title: 'Attālums, cm' },
             yaxis: { title: 'Apgaismojums, lx' },
             template: 'plotly_white', height: 500
           }, { responsive: true });
         } else {
-          document.getElementById('plotDiv').innerHTML = '<p class="muted">Enter data to see the plot.</p>';
+          document.getElementById('plotDiv').innerHTML = '<p class="muted">Ievadiet datus, lai redzētu grafiku.</p>';
         }
         return;
       }
 
-      resultArea.innerHTML = '<p class="muted">Calculating…</p>';
+      resultArea.innerHTML = '<p class="muted">Aprēķina…</p>';
       try {
         const res = await fetch(API_RESULT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            rows: dataRows.map(r => [r[0], r[1]]),
-            transformKey
-          })
+          body: JSON.stringify({ rows: dataRows.map(r => [r[0], r[1]]) })
         });
         const data = await res.json();
         if (!res.ok) {
           resultArea.innerHTML = `<p class="error">${data.error || res.statusText}</p>`;
           Plotly.newPlot('plotDiv', [{
             x: x, y: y, mode: 'markers', type: 'scatter',
-            marker: { size: 10, color: 'blue' }, name: 'Data points'
+            marker: { size: 10, color: 'blue' }, name: 'Datu punkti'
           }], {
-            title: 'Apgaismojums vs Attālums',
+            title: 'Apgaismojums no attāluma',
             xaxis: { title: 'Attālums, cm' },
             yaxis: { title: 'Apgaismojums, lx' },
             template: 'plotly_white', height: 500
@@ -237,32 +173,23 @@
         const display = typeof mainResult === 'number' && isFinite(mainResult)
           ? mainResult.toFixed(6) : (mainResult == null ? '—' : String(mainResult));
         resultArea.innerHTML = `
-          <p><strong>Main Result</strong></p>
-          <p class="main-result">${display}</p>
+          <p><strong>Galvenais rezultāts</strong></p>
+          <div class="main-result-box">${display}</div>
         `;
       } catch (err) {
-        resultArea.innerHTML = '<p class="error">Network error. Deploy to Cloudflare Pages or run with a local backend.</p>';
+        resultArea.innerHTML = '<p class="error">Tīkla kļūda. Izvietojiet Cloudflare Pages vai palaidiet ar lokālu backend.</p>';
       }
 
       Plotly.newPlot('plotDiv', [{
         x: x, y: y, mode: 'markers', type: 'scatter',
-        marker: { size: 10, color: 'blue' }, name: 'Data points'
+        marker: { size: 10, color: 'blue' }, name: 'Datu punkti'
       }], {
-        title: 'Apgaismojums vs Attālums',
+        title: 'Apgaismojums no attāluma',
         xaxis: { title: 'Attālums, cm' },
         yaxis: { title: 'Apgaismojums, lx' },
         template: 'plotly_white', height: 500, showlegend: true
       }, { responsive: true });
     }
-
-    const sel = document.getElementById('transformSelect');
-    TRANSFORM_KEYS.forEach((key, i) => {
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = key;
-      if (i === 0) opt.selected = true;
-      sel.appendChild(opt);
-    });
 
     renderTable();
     update();
