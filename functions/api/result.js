@@ -74,8 +74,8 @@ export async function onRequestPost(context) {
     }
   }
 
-  if (x.length < 2) {
-    return new Response(JSON.stringify({ error: 'Vajag vismaz 2 derīgus punktus' }), {
+  if (x.length < 3) {
+    return new Response(JSON.stringify({ error: 'Vajag vismaz 3 derīgus punktus' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     });
@@ -100,7 +100,7 @@ export async function onRequestPost(context) {
   }
 
   const value = typeof mainResult === 'number' && isFinite(mainResult)
-    ? Number(mainResult.toFixed(6))
+    ? Number(mainResult.toFixed(2))
     : mainResult;
 
   return new Response(JSON.stringify({ mainResult: value }), {

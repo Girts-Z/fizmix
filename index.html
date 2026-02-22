@@ -173,6 +173,20 @@
         return;
       }
 
+      if (x.length < 3) {
+        resultArea.innerHTML = '<p class="warn">Ievadiet vismaz 3 datu punktus, lai iegūtu rezultātu.</p>';
+        Plotly.newPlot('plotDiv', [{
+          x: x, y: y, mode: 'markers', type: 'scatter',
+          marker: { size: 10, color: 'blue' }, name: 'Datu punkti'
+        }], {
+          title: 'Apgaismojums no attāluma',
+          xaxis: { title: 'Attālums, cm' },
+          yaxis: { title: 'Apgaismojums, lx' },
+          template: 'plotly_white', height: 500
+        }, { responsive: true });
+        return;
+      }
+
       resultArea.innerHTML = '<p class="muted">Aprēķina…</p>';
       try {
         const res = await fetch(API_RESULT, {
@@ -196,7 +210,7 @@
         }
         const mainResult = data.mainResult;
         const display = typeof mainResult === 'number' && isFinite(mainResult)
-          ? mainResult.toFixed(6) : (mainResult == null ? '—' : String(mainResult));
+          ? mainResult.toFixed(2) : (mainResult == null ? '—' : String(mainResult));
         resultArea.innerHTML = `
           <p style="margin-bottom: 4px;"><strong>Galvenais rezultāts</strong></p>
           <div class="main-result-box"><strong>${display}</strong></div>
