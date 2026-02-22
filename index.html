@@ -16,7 +16,7 @@
     }
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: var(--fizmix-bg); color: #333; }
-    h1 { margin-top: 0; color: var(--fizmix-primary); }
+    h1 { margin: 0 0 20px; color: var(--fizmix-primary); text-align: center; }
     .layout { display: flex; gap: 24px; max-width: 1400px; margin: 0 auto; }
     .col-left { flex: 0 0 30%; min-width: 280px; }
     .col-right { flex: 1 1 70%; min-width: 0; }
@@ -37,6 +37,27 @@
     .muted { color: #5a6c73; font-size: 0.9rem; }
     .error { color: #c00; }
     .warn { color: #b8860b; }
+
+    /* Mobile-friendly layout */
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      h1 { font-size: 1.5rem; margin-bottom: 16px; }
+      .layout { flex-direction: column; gap: 16px; }
+      .col-left, .col-right { flex: 1 1 auto; min-width: 0; width: 100%; }
+      .panel { padding: 12px; margin-bottom: 12px; }
+      .panel h2 { font-size: 1rem; }
+      th, td { padding: 10px 8px; }
+      input[type="number"] { padding: 10px; font-size: 16px; min-height: 44px; }
+      button { padding: 10px 16px; min-height: 44px; font-size: 1rem; }
+      .main-result-box { font-size: 1.25rem; padding: 14px; margin-top: 12px; }
+      #plotDiv { height: 360px !important; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      h1 { font-size: 1.35rem; }
+      .panel { padding: 10px; }
+      #plotDiv { height: 300px !important; }
+    }
   </style>
 </head>
 <body>
