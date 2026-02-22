@@ -6,32 +6,41 @@
   <title>Fizmix mērījumu lietotne</title>
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <style>
+    /* Fizmix brand colors from fizmix.lv (logo #017395) */
+    :root {
+      --fizmix-primary: #017395;
+      --fizmix-primary-dark: #015a73;
+      --fizmix-primary-light: #e0f2f7;
+      --fizmix-bg: #f0f7f9;
+      --fizmix-panel-border: rgba(1, 115, 149, 0.2);
+    }
     * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: #f8f9fa; }
-    h1 { margin-top: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: var(--fizmix-bg); color: #333; }
+    h1 { margin-top: 0; color: var(--fizmix-primary); }
     .layout { display: flex; gap: 24px; max-width: 1400px; margin: 0 auto; }
     .col-left { flex: 0 0 30%; min-width: 280px; }
     .col-right { flex: 1 1 70%; min-width: 0; }
-    .panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .panel h2 { margin: 0 0 12px; font-size: 1.1rem; }
+    .panel { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px var(--fizmix-panel-border); border: 1px solid var(--fizmix-panel-border); }
+    .panel h2 { margin: 0 0 12px; font-size: 1.1rem; color: var(--fizmix-primary); }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
-    th { background: #f0f0f0; }
-    input[type="number"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-    button { padding: 6px 12px; cursor: pointer; background: #4a90d9; color: #fff; border: none; border-radius: 4px; }
-    button:hover { background: #357abd; }
+    th { background: var(--fizmix-primary-light); color: var(--fizmix-primary-dark); }
+    input[type="number"] { width: 100%; padding: 6px; border: 1px solid #b8d4dc; border-radius: 4px; }
+    input[type="number"]:focus { outline: none; border-color: var(--fizmix-primary); box-shadow: 0 0 0 2px rgba(1, 115, 149, 0.2); }
+    button { padding: 6px 12px; cursor: pointer; background: var(--fizmix-primary); color: #fff; border: none; border-radius: 4px; }
+    button:hover { background: var(--fizmix-primary-dark); }
     button.del { background: #c44; }
     button.del:hover { background: #a33; }
-    .main-result-box { font-size: 1.5rem; font-weight: 600; color: #1a4d1a; margin: 12px 0; padding: 16px; background: #e8f5e9; border: 2px solid #2e7d32; border-radius: 8px; }
+    .main-result-box { font-size: 1.5rem; font-weight: 700; color: #fff; margin: 12px 0 0; padding: 16px; background: var(--fizmix-primary); border: 2px solid var(--fizmix-primary-dark); border-radius: 8px; }
     .viz-row { display: flex; gap: 16px; align-items: flex-start; }
-    .viz-row .results { flex: 0 0 200px; }
     .viz-row .chart { flex: 1; min-width: 0; }
-    .muted { color: #666; font-size: 0.9rem; }
+    .muted { color: #5a6c73; font-size: 0.9rem; }
     .error { color: #c00; }
     .warn { color: #b8860b; }
   </style>
 </head>
 <body>
+  <h1>Fizmix uzdevums</h1>
   <div class="layout">
     <div class="col-left">
       <div class="panel">
@@ -47,14 +56,11 @@
           <tbody id="dataBody"></tbody>
         </table>
         <button type="button" id="addRow">+ Pievienot rindu</button>
+        <div id="resultArea"></div>
       </div>
     </div>
     <div class="col-right">
       <div class="panel viz-row">
-        <div class="results">
-          <h2>Rezultāti</h2>
-          <div id="resultArea"></div>
-        </div>
         <div class="chart">
           <h2>Datu vizualizācija</h2>
           <div id="plotDiv" style="height: 500px;"></div>
@@ -64,9 +70,7 @@
   </div>
 
   <script>
-    const defaultData = [
-      [10, 1000], [20, 250], [30, 111], [40, 63], [50, 40]
-    ];
+    const defaultData = [];
 
     let dataRows = JSON.parse(localStorage.getItem('fizmix_data')) || defaultData.map(r => [...r]);
 
@@ -173,8 +177,8 @@
         const display = typeof mainResult === 'number' && isFinite(mainResult)
           ? mainResult.toFixed(6) : (mainResult == null ? '—' : String(mainResult));
         resultArea.innerHTML = `
-          <p><strong>Galvenais rezultāts</strong></p>
-          <div class="main-result-box">${display}</div>
+          <p style="margin-bottom: 4px;"><strong>Galvenais rezultāts</strong></p>
+          <div class="main-result-box"><strong>${display}</strong></div>
         `;
       } catch (err) {
         resultArea.innerHTML = '<p class="error">Tīkla kļūda. Izvietojiet Cloudflare Pages vai palaidiet ar lokālu backend.</p>';
